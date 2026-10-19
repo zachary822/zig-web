@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en" class="scheme-light-dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{$title}}zig-web{{/title}}</title>
+  <link rel="stylesheet" href="{{#static}}css/style.css{{/static}}">
+  {{! htmx settings:
+      - No indicator styles from htmx: the templates style `.htmx-request`
+        with Tailwind classes.
+      - htmx 4 swaps all responses except 204 and 304. Thus pages with a
+        4xx status (form errors, a wrong password, not found, busy) show as
+        a browser shows them without htmx. A 5xx response does not swap:
+        the page stays as it is.
+      For the Content-Security-Policy in src/middleware/SecurityHeaders.zig, do not use
+      `hx-on` or `js:` values: htmx runs them with `new Function`. }}
+  <meta name="htmx-config" content='{"includeIndicatorCSS":false,"noSwap":[204,304,"5xx"]}'>
+  <script src="{{#static}}vendor/htmx-4.0.0.min.js{{/static}}"></script>
+  {{! Keeps Alpine.js state when htmx swaps (htmx 4 extension). }}
+  <script src="{{#static}}vendor/hx-alpine-compat.js{{/static}}"></script>
+  {{! Put the scripts of Alpine.js components (Alpine.data) before
+      Alpine.js, so they are registered when it starts. Load them on all
+      pages, because htmx swaps only the body when it loads a page. }}
+  <script src="{{#static}}vendor/alpine-3.17.4.min.js{{/static}}" defer></script>
+</head>
+{{! The layout of all pages: the styles of the page body, the navigation
+    bar and the flash messages. A page sets only two blocks: `title` and
+    `content`. It sets its own width in `content`, with a container, for
+    example <div class="mx-auto max-w-2xl px-4">...</div>.
+    htmx sends the CSRF token with each request (see src/middleware/csrf.zig).
+    `hx-boost` loads links and forms with htmx and swaps the body; without
+    JavaScript they work as usual. The bar at the top shows while htmx
+    loads a page. In htmx 4, children get these attributes only with
+    `:inherited`. }}
+<body class="flex min-h-screen flex-col bg-stone-50 font-sans text-stone-900 antialiased selection:bg-amber-200 selection:text-stone-900 dark:bg-stone-950 dark:text-stone-100"
+      hx-boost:inherited="true" hx-indicator:inherited="#page-progress" hx-headers:inherited='{"X-CSRF-Token": "{{csrf_token}}"}'>
+  <div id="page-progress" aria-hidden="true"
+       class="pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 bg-amber-500 opacity-0 [&.htmx-request]:animate-pulse [&.htmx-request]:opacity-100"></div>
+  <a href="#main" class="sr-only rounded-lg bg-white px-3 py-2 focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 dark:bg-stone-900">Skip to content</a>
+
+  <header class="sticky top-0 z-40 border-b border-stone-200/80 bg-stone-50/85 backdrop-blur dark:border-stone-800/80 dark:bg-stone-950/85">
+    <div class="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2">
+      <a href="/" class="group flex items-center gap-2.5 font-serif text-xl font-semibold tracking-tight">
+        <span aria-hidden="true" class="grid size-8 place-items-center rounded-lg bg-amber-500 font-sans text-base font-black text-stone-950 shadow-sm transition-transform group-hover:-rotate-6">z</span>
+        zig-web
+      </a>
+      <nav class="text-sm">
+        {{#current_user}}
+        <form method="post" action="/logout" class="flex flex-wrap items-center gap-1">
+          {{>csrf_field}}
+          <a href="/uploads" class="rounded-lg px-3 py-2 font-medium text-stone-600 hover:bg-stone-200/60 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100">Uploads</a>
+          <span class="hidden border-l border-stone-200 py-1 pr-1 pl-4 text-stone-500 md:ml-2 md:inline dark:border-stone-800 dark:text-stone-400">Signed in as <strong class="font-medium text-stone-900 dark:text-stone-100">{{username}}</strong></span>
+          <button type="submit" class="rounded-lg px-3 py-2 font-medium text-stone-600 hover:bg-stone-200/60 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100">Log out</button>
+        </form>
+        {{/current_user}}
+        {{^current_user}}
+        <a href="/login" class="rounded-lg px-3 py-2 font-medium text-stone-600 hover:bg-stone-200/60 hover:text-stone-900 dark:text-stone-400 dark:hover:bg-stone-800 dark:hover:text-stone-100">Log in</a>
+        {{/current_user}}
+      </nav>
+    </div>
+  </header>
+
+  {{! Flash messages (see src/flash.zig), above the page content. Alpine.js
+      adds the close button; without it, the button stays hidden. }}
+  <div class="mx-auto w-full max-w-6xl px-4">
+    {{#messages}}
+    <div role="status" x-data="{ shown: true }" x-show="shown"
+         class="mt-2 flex items-start justify-between gap-4 rounded-xl border px-4 py-3 text-sm shadow-xs first:mt-6
+      {{#is_success}}border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200{{/is_success}}
+      {{#is_info}}border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-200{{/is_info}}
+      {{#is_warning}}border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200{{/is_warning}}
+      {{#is_error}}border-red-200 bg-red-50 text-red-900 dark:border-red-900 dark:bg-red-950 dark:text-red-200{{/is_error}}">
+      <p>{{text}}</p>
+      <button type="button" x-cloak @click="shown = false" aria-label="Close"
+              class="-m-1 rounded px-1.5 opacity-60 hover:opacity-100">&times;</button>
+    </div>
+    {{/messages}}
+  </div>
+
+  <main id="main" class="flex-1 py-10 sm:py-14">
+    {{$content}}{{/content}}
+  </main>
+
+  <footer class="border-t border-stone-200 dark:border-stone-800">
+    <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-6 text-sm text-stone-500 dark:text-stone-400">
+      <a href="/" class="font-serif font-medium text-stone-700 hover:text-stone-900 dark:text-stone-300 dark:hover:text-stone-100">zig-web</a>
+      <p>Served by Zig.</p>
+    </div>
+  </footer>
+</body>
+</html>

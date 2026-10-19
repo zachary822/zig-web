@@ -1,0 +1,7 @@
+@import "tailwindcss";
+/* Alpine.js shows an element with `x-cloak` only after it starts. */
+@layer base {
+  [x-cloak] {
+    display: none !important;
+  }
+}

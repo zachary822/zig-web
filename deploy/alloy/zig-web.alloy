@@ -1,0 +1,30 @@
+// Grafana Alloy on the Pi: receives the spans of zig-web
+// (OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4319 in .env) and stores
+// them in Tempo.
+//
+// Add this file to /etc/alloy/config.alloy, then:
+//
+//     sudo systemctl reload alloy
+//
+// It uses `otelcol.exporter.otlp "tempo"`, which config.alloy must define.
+// The app has its own receiver on port 4319.
+//
+// The server's log goes to Loki through the journal
+// (`loki.source.journal "system"`, service_name="zig-web"). Its lines end
+// with ` trace_id=<32 hex digits>` in a request.
+
+otelcol.receiver.otlp "zig_web" {
+	http {
+		endpoint = "127.0.0.1:4319"
+	}
+
+	output {
+		traces = [otelcol.processor.batch.zig_web.input]
+	}
+}
+
+otelcol.processor.batch "zig_web" {
+	output {
+		traces = [otelcol.exporter.otlp.tempo.input]
+	}
+}

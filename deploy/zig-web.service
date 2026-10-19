@@ -1,0 +1,96 @@
+# systemd unit for zig-web on the Pi.
+#
+# The repository is cloned to /home/pi/zig-web and built there:
+#
+#     cd ~/zig-web
+#     git pull
+#     npm ci && zig build css
+#     zig build -Doptimize=ReleaseSafe
+#     zig build collectstatic -Doptimize=ReleaseSafe
+#     zig build migrate -Doptimize=ReleaseSafe
+#
+# Install and start:
+#
+#     sudo cp deploy/zig-web.service /etc/systemd/system/
+#     sudo systemctl daemon-reload
+#     sudo systemctl enable --now zig-web
+#
+# After an update (pull, build and migrate as above):
+#
+#     sudo systemctl restart zig-web
+#
+# deploy/deploy.sh does all the steps of an update, in this order.
+#
+# Logs:
+#
+#     journalctl -u zig-web -f
+#
+# Configuration comes from /home/pi/zig-web/.env (mode 600, see
+# .env.example), which the server reads itself. nginx sends /static/ from
+# STATIC_ROOT (see deploy/nginx/), so .env sets SERVE_STATIC=false and
+# STATIC_ROOT=/var/www/zig-web/static. Make that directory one time:
+#
+#     sudo install -d -o pi -g pi /var/www/zig-web/static
+#
+# Uploaded files go to MEDIA_DIR, which nginx sends as /media/. The
+# server writes there, so .env sets MEDIA_DIR=/var/www/zig-web/media and
+# the unit lets the server write only to that directory (ReadWritePaths).
+# Make it one time:
+#
+#     sudo install -d -o pi -g pi /var/www/zig-web/media
+#
+# Back up this directory together with the database: the `upload` table and
+# the files belong together.
+#
+# The server hashes static/ at startup, so collectstatic must run before the
+# restart; else the pages refer to hashed names that nginx does not have.
+
+[Unit]
+Description=zig-web web server
+# Start after MariaDB, which runs on the same host.
+After=network.target mariadb.service
+
+[Service]
+Type=exec
+# The owner of the clone, so the server can read .env (mode 600).
+User=pi
+Group=pi
+# The server finds templates/ and .env relative to this directory.
+WorkingDirectory=/home/pi/zig-web
+ExecStart=/home/pi/zig-web/zig-out/bin/zig_web
+Restart=on-failure
+RestartSec=2s
+# The server finishes the requests in progress on SIGTERM. If it does not stop
+# in this time (for example, a SIGTERM during startup), systemd kills it.
+TimeoutStopSec=15s
+
+# Hardening. The server reads files, writes only uploaded files, listens on
+# a TCP port above 1024, and connects to MariaDB through its Unix socket.
+NoNewPrivileges=yes
+# The clone is under /home: readable, but not writable.
+ProtectHome=read-only
+ProtectSystem=strict
+# MEDIA_DIR in .env. The directory must exist, or the unit does not start.
+ReadWritePaths=/var/www/zig-web/media
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+CapabilityBoundingSet=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+
+[Install]
+WantedBy=multi-user.target

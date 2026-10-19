@@ -1,0 +1,34 @@
+# Checks that run on `git commit`. Install the hook one time with:
+#
+#     pre-commit install
+#
+# Run on all files with:
+#
+#     pre-commit run --all-files
+
+# Vendored files stay byte-identical to their upstream release.
+exclude: ^static/vendor/
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: detect-private-key
+
+  - repo: local
+    hooks:
+      - id: zig-fmt
+        name: zig fmt
+        entry: zig fmt
+        language: system
+        files: \.(zig|zon)$

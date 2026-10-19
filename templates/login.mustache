@@ -1,0 +1,31 @@
+{{<base}}
+{{$title}}Log in · zig-web{{/title}}
+{{$content}}
+  <div class="mx-auto max-w-md px-4 sm:py-6">
+    <div class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8 dark:border-stone-800 dark:bg-stone-900">
+      <h1 class="font-serif text-3xl font-semibold tracking-tight">Log in</h1>
+      <p class="mt-1 text-sm text-stone-500 dark:text-stone-400">Log in to your account.</p>
+      <form method="post" action="/login" hx-disable="find button" class="mt-8 space-y-5">
+        {{>csrf_field}}
+        {{#error}}
+        <p role="alert" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{{error}}</p>
+        {{/error}}
+        <div>
+          <label for="username" class="block text-sm font-medium text-stone-700 dark:text-stone-300">Username or email</label>
+          <input id="username" name="username" type="text" value="{{username}}" required autofocus
+                 autocomplete="username" autocapitalize="none" spellcheck="false"
+                 class="mt-1.5 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 shadow-xs focus:border-amber-500 focus:ring-3 focus:ring-amber-500/20 focus:outline-none dark:border-stone-700 dark:bg-stone-950">
+        </div>
+        <div>
+          <label for="password" class="block text-sm font-medium text-stone-700 dark:text-stone-300">Password</label>
+          <input id="password" name="password" type="password" required autocomplete="current-password"
+                 class="mt-1.5 w-full rounded-lg border border-stone-300 bg-white px-3 py-2 shadow-xs focus:border-amber-500 focus:ring-3 focus:ring-amber-500/20 focus:outline-none dark:border-stone-700 dark:bg-stone-950">
+        </div>
+        {{! htmx turns the button off while the form is sent. }}
+        <button type="submit"
+                class="w-full rounded-lg bg-stone-900 px-4 py-2.5 font-medium text-white hover:bg-stone-700 disabled:opacity-60 dark:bg-amber-400 dark:text-stone-950 dark:hover:bg-amber-300">Log in</button>
+      </form>
+    </div>
+  </div>
+{{/content}}
+{{/base}}

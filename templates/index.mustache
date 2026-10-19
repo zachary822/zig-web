@@ -1,0 +1,22 @@
+{{<base}}
+{{$content}}
+  <div class="mx-auto max-w-3xl px-4">
+    <header class="border-b border-stone-200 pb-8 dark:border-stone-800">
+      <p class="text-sm font-semibold tracking-widest text-amber-700 uppercase dark:text-amber-400">zig-web</p>
+      <h1 class="mt-2 font-serif text-4xl font-semibold tracking-tight text-balance sm:text-5xl">It works</h1>
+      <p class="mt-4 text-stone-600 dark:text-stone-400">
+        {{#current_user}}Hello, {{username}}.{{/current_user}}
+        {{^current_user}}<a href="/login" class="font-medium text-amber-700 hover:underline dark:text-amber-400">Log in</a> to see your uploads.{{/current_user}}
+      </p>
+    </header>
+
+    {{! Replace this page with your own: templates/index.mustache and
+        src/routes/home.zig. }}
+    <ul class="mt-8 space-y-2 text-sm text-stone-600 dark:text-stone-400">
+      <li>Add a route in <code class="font-mono">src/main.zig</code> and a handler in <code class="font-mono">src/routes/</code>.</li>
+      <li>Add a page in <code class="font-mono">templates/</code> that extends <code class="font-mono">base</code>.</li>
+      <li>Add a table with <code class="font-mono">zig build migrate -- new NAME</code>.</li>
+    </ul>
+  </div>
+{{/content}}
+{{/base}}
