@@ -26,6 +26,17 @@ pub const std_options: std.Options = .{
     .logFn = logFn,
 };
 
+/// The spans of zig-db (`Pool.acquire`, `exec`, `query`), as children of
+/// the span of the request (see `trace.zig`).
+pub const zig_db_tracer = struct {
+    pub fn start(name: []const u8, kind: db.SpanKind) trace.Span {
+        return trace.start(name, switch (kind) {
+            .internal => .internal,
+            .client => .client,
+        });
+    }
+};
+
 /// True when stderr goes to the systemd journal (systemd sets
 /// `JOURNAL_STREAM`). Set at the start of `main`, before other threads start.
 var log_to_journal = false;
@@ -293,11 +304,6 @@ fn createDbPool(init: std.process.Init, cfg: config.Config, url: []const u8) ?*d
         std.log.err("DATABASE_URL is set, but this build has no MariaDB support (install libmariadb and build with -Ddb=true)", .{});
         return null;
     }
-    // The URL contains the password, so it is never logged.
-    const connection = db.parseUrl(init.arena.allocator(), url) catch |err| {
-        std.log.err("DATABASE_URL is not valid: {t}", .{err});
-        return null;
-    };
     if (cfg.db_pool_size == 0) {
         std.log.err("DB_POOL_SIZE must be at least 1", .{});
         return null;
@@ -307,16 +313,17 @@ fn createDbPool(init: std.process.Init, cfg: config.Config, url: []const u8) ?*d
         std.log.err("cannot initialize the MariaDB library: {t}", .{err});
         return null;
     };
-    const pool = db.Pool.create(init.gpa, init.io, .{
-        .connection = connection,
+    // The URL contains the password, so it is never logged.
+    const pool = db.Pool.open(init.gpa, init.io, url, .{
         .pool_size = cfg.db_pool_size,
         .acquire_timeout_ms = cfg.db_pool_timeout_ms,
         .conn_max_age_s = cfg.db_conn_max_age_s,
     }) catch |err| {
-        std.log.err("cannot create the database pool: {t}", .{err});
+        std.log.err("DATABASE_URL is not valid: {t}", .{err});
         db.libraryEnd();
         return null;
     };
+    const connection = pool.connection;
 
     const target = connection.socket orelse connection.host;
     if (pool.acquire()) |conn| {

@@ -54,7 +54,7 @@ pub const Config = struct {
     /// the same time. Each one uses 19 MiB of memory for a short time.
     password_hash_concurrency: u16 = 2,
 
-    /// MariaDB connection string, see `db.parseUrl`:
+    /// MariaDB connection string, see `parseUrl` in zig-db (`db.parseUrl`):
     /// `mariadb://USER:PASSWORD@HOST:PORT/DATABASE[?socket=PATH]`.
     /// Optional: without it, the server runs without a database. When the
     /// database cannot be reached, the server still starts; requests that

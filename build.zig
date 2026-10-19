@@ -41,19 +41,15 @@ pub fn build(b: *std.Build) void {
 
     const options = b.addOptions();
     options.addOption(bool, "serve_static", serve_static);
-    options.addOption(bool, "db", db);
     const build_options = options.createModule();
 
-    // The C API of MariaDB Connector/C, as the Zig module "mariadb".
-    const mariadb: ?*std.Build.Module = if (db) blk: {
-        const mariadb_c = b.addTranslateC(.{
-            .root_source_file = b.path("src/mariadb.h"),
-            .target = target,
-            .optimize = optimize,
-        });
-        mariadb_c.linkSystemLibrary("libmariadb", .{});
-        break :blk mariadb_c.createModule();
-    } else null;
+    // The database client (../zig-db), with or without MariaDB support.
+    const zig_db = b.dependency("zig_db", .{
+        .target = target,
+        .optimize = optimize,
+        .mariadb = db,
+    });
+    const db_module = zig_db.module("db");
 
     const httpz = b.dependency("httpz", .{
         .target = target,
@@ -107,7 +103,7 @@ pub fn build(b: *std.Build) void {
     // install prefix when running `zig build` (i.e. when executing the default
     // step). By default the install prefix is `zig-out/` but can be overridden
     // by passing `--prefix` or `-p`.
-    addMariadb(exe.root_module, mariadb);
+    exe.root_module.addImport("db", db_module);
 
     b.installArtifact(exe);
 
@@ -148,7 +144,7 @@ pub fn build(b: *std.Build) void {
             },
         }),
     });
-    addMariadb(migrate_exe.root_module, mariadb);
+    migrate_exe.root_module.addImport("db", db_module);
     b.installArtifact(migrate_exe);
 
     const migrate_step = b.step("migrate", "Apply database migrations (zig build migrate -- status|new NAME)");
@@ -171,7 +167,7 @@ pub fn build(b: *std.Build) void {
             },
         }),
     });
-    addMariadb(user_exe.root_module, mariadb);
+    user_exe.root_module.addImport("db", db_module);
     b.installArtifact(user_exe);
 
     const user_step = b.step("user", "Manage users (zig build user -- create USERNAME EMAIL|passwd USERNAME|list)");
@@ -196,7 +192,7 @@ pub fn build(b: *std.Build) void {
             },
         }),
     });
-    addMariadb(media_exe.root_module, mariadb);
+    media_exe.root_module.addImport("db", db_module);
     b.installArtifact(media_exe);
 
     const media_step = b.step("media", "Examine uploaded files (zig build media -- check|prune)");
@@ -307,14 +303,6 @@ pub fn build(b: *std.Build) void {
     //
     // Lastly, the Zig build system is relatively simple and self-contained,
     // and reading its source code will allow you to master it.
-}
-
-/// Gives `module` the "mariadb" import and links libmariadb, when the build
-/// includes MariaDB support.
-fn addMariadb(module: *std.Build.Module, mariadb: ?*std.Build.Module) void {
-    const m = mariadb orelse return;
-    module.addImport("mariadb", m);
-    module.linkSystemLibrary("libmariadb", .{});
 }
 
 /// Reports whether pkg-config finds the library `name`.

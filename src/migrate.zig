@@ -125,25 +125,21 @@ pub fn main(init: std.process.Init) !u8 {
         std.log.err("DATABASE_URL is not set", .{});
         return 1;
     };
-    const connection = db.parseUrl(arena, url) catch |err| {
-        std.log.err("DATABASE_URL is not valid: {t}", .{err});
-        return 1;
-    };
     db.libraryInit() catch |err| {
         std.log.err("cannot initialize the MariaDB library: {t}", .{err});
         return 1;
     };
     defer db.libraryEnd();
-    const pool = db.Pool.create(gpa, io, .{
-        .connection = connection,
+    const pool = db.Pool.open(gpa, io, url, .{
         .pool_size = 1,
         .acquire_timeout_ms = 1000,
         .multi_statements = true,
     }) catch |err| {
-        std.log.err("cannot create the database pool: {t}", .{err});
+        std.log.err("DATABASE_URL is not valid: {t}", .{err});
         return 1;
     };
     defer pool.destroy();
+    const connection = pool.connection;
     const conn = pool.acquire() catch |err| {
         std.log.err("cannot connect to database {s}@{s}/{s}: {t}", .{ connection.user, connection.socket orelse connection.host, connection.database, err });
         return 1;

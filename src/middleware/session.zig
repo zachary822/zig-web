@@ -484,8 +484,7 @@ test Middleware {
     try db.libraryInit();
     defer db.libraryEnd();
     // One connection, which has the temporary tables.
-    const pool = try db.Pool.create(gpa, io, .{
-        .connection = try db.parseUrl(arena, url),
+    const pool = try db.Pool.open(gpa, io, url, .{
         .pool_size = 1,
         .acquire_timeout_ms = 1000,
     });
