@@ -1,5 +1,6 @@
-//! The database of the app: the MariaDB backend of zig-db (../zig-db), a
-//! connection pool and simple typed queries.
+//! The database of the app: the MariaDB backend of zig-db
+//! (https://github.com/zachary822/zig-db), a connection pool and simple
+//! typed queries.
 //!
 //! Builds without MariaDB support (`-Ddb=false`, or libmariadb not found)
 //! use a stub with the same API, so the rest of the code does not change.

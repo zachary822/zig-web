@@ -43,7 +43,7 @@ pub fn build(b: *std.Build) void {
     options.addOption(bool, "serve_static", serve_static);
     const build_options = options.createModule();
 
-    // The database client (../zig-db), with or without MariaDB support.
+    // The database client (zig-db), with or without MariaDB support.
     const zig_db = b.dependency("zig_db", .{
         .target = target,
         .optimize = optimize,

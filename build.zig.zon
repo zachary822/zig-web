@@ -38,10 +38,10 @@
             .url = "git+https://github.com/zachary822/http.zig?ref=route-path#ca5b039fc58e0a310563f6b73da6b52ede138051",
             .hash = "httpz-0.0.0-PNVzrFUeCQCXt_cjyU99b6aqfQrfCWeUQDsSRtllQsIu",
         },
-        // The database client with connection pools, from the sibling
-        // directory.
+        // The database client with connection pools.
         .zig_db = .{
-            .path = "../zig-db",
+            .url = "git+https://github.com/zachary822/zig-db#f7a763a3e995e6708b48139f1f0b6fec41b5f20f",
+            .hash = "db-0.0.0-3oI-82X1AAD8LHQfsETSTva-CG1b0h3gOJc4s1E5mJFZ",
         },
         .mustache_zig = .{
             .url = "git+https://github.com/zachary822/mustache-zig#bcb8bb0a4a8c81152b70ea1354614fd3b22548d0",
